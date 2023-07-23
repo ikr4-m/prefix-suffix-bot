@@ -1,0 +1,13 @@
+.env
+.env.deploy
+.vimsession
+.vs
+*.pem
+
+# Generated project files by .NET
+**/obj/**
+**/bin/**
+**/Properties/**
+
+# Development Generated Data
+.devel-data/
