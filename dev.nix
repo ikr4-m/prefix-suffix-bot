@@ -5,4 +5,9 @@ pkgs.mkShell {
         pkgs.dotnet-sdk_7
         pkgs.python39
     ];
+    shellHook = ''
+        echo "[HOOK] Restore all dotnet package."
+        dotnet restore
+        echo "[HOOK] Done!"
+    '';
 }
