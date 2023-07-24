@@ -3,5 +3,6 @@ pkgs.mkShell {
     name = "indev_env";
     packages = [
         pkgs.dotnet-sdk_7
+        pkgs.python39
     ];
 }
