@@ -17,7 +17,7 @@ public class MigratorEngine
     {
         if (_args.Contains("db"))
         {
-            MigrateUp();
+            GenerateDatabase();
             return;
         }
         else if (_args.Contains("lang"))
@@ -28,7 +28,7 @@ public class MigratorEngine
         Console.Write("Usage: [db | lang <code>]");
     }
 
-    private void MigrateUp()
+    private void GenerateDatabase()
     {
         // List all SQL file
         var inDirFiles = Directory.GetFiles("./Migrator/SQL");
