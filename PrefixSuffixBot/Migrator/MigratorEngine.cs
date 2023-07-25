@@ -1,6 +1,4 @@
-using System.IO;
-using System.Linq;
-using System.Text;
+using PrefixSuffixBot.Migrator.Language;
 using System.Data.SQLite;
 
 namespace PrefixSuffixBot.Migrator;
@@ -22,6 +20,12 @@ public class MigratorEngine
         }
         else if (_args.Contains("lang"))
         {
+            if (_args.Count() == 1)
+            {
+                Console.Write("Usage: [db | lang <code>]");
+                return;
+            }
+            ImportLanguage(_args[1]);
             return;
         }
 
@@ -59,8 +63,14 @@ public class MigratorEngine
         con.Close();
     }
 
-    private void MigrateDown(string timestamp)
+    private void ImportLanguage(string lang)
     {
-        //
+        switch (lang)
+        {
+            case "id": new Indonesia(); break;
+            default:
+                Console.WriteLine("No language supported!");
+                break;
+        }
     }
 }

@@ -14,3 +14,4 @@
 
 # Database
 *.sqlite
+*.sqlite.journal
