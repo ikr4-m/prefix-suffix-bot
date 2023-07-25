@@ -11,3 +11,6 @@
 
 # Development Generated Data
 .devel-data/
+
+# Database
+*.sqlite
