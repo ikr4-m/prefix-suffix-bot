@@ -3,7 +3,25 @@ using PrefixSuffixBot.Helper;
 namespace PrefixSuffixBot;
 public class PostEngine
 {
-    public PostEngine() { }
+    private DatabaseContext _db;
+
+    public PostEngine(DatabaseContext db)
+    {
+        _db = db;
+    }
+
+    public void CheckConnection()
+    {
+        try
+        {
+            Logging.Info($"Preparing {_db.Keywords.Count()} keywords.");
+        }
+        catch (System.Exception e)
+        {
+            Logging.Error(e);
+            Environment.Exit(1);
+        }
+    }
 
     public async void Spawn()
     {

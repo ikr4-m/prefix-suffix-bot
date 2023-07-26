@@ -18,6 +18,11 @@ public class Program
         }
         _loopInMinute = int.Parse(loopEnv);
 
+        // Check database connection
+        var db = new DatabaseContext();
+        var engine = new PostEngine(db);
+        engine.CheckConnection();
+
         // Make a loop that respecting "server timedate"
         // Like, when this is 08:21 PM and it need to loop at 5 min every time
         // it will start looping on 08:25 without waiting the another thread completely
@@ -26,7 +31,7 @@ public class Program
         {
             // Spawning shadow Task Thread
             Logging.Info("Spawning post task.", "POOL");
-            _ = Task.Run(new PostEngine().Spawn);
+            _ = Task.Run(engine.Spawn);
 
             // Calculate next turn
             var dateNow = DateTime.Now;
