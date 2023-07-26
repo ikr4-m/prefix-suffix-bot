@@ -24,7 +24,10 @@ public class Program
         // finish.
         while (true)
         {
-            // Spawning Task Thread
+            // Spawning shadow Task Thread
+            Logging.Info("Spawning post task.", "POOL");
+            _ = Task.Run(new PostEngine().Spawn);
+
             // Calculate next turn
             var dateNow = DateTime.Now;
             var diffMin = _loopInMinute - (dateNow.Minute % _loopInMinute);
@@ -32,7 +35,8 @@ public class Program
             var nextTurn = (int) double.Floor(nextTurnDT.Subtract(dateNow).TotalMilliseconds);
 
             Logging.Info(
-                $"Diff min is {diffMin} from local server. Your next turn is on {nextTurnDT}. [{nextTurn} ms]");
+                $"Diff min is {diffMin} from local server. Your next turn is on {nextTurnDT}. [{nextTurn} ms]",
+                "POOL");
             Thread.Sleep(nextTurn);
         }
     }
