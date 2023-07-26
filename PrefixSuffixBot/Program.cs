@@ -18,7 +18,7 @@ public class Program
         }
         _loopInMinute = int.Parse(loopEnv);
 
-        // TODO: Make a loop that respecting "server timedate"
+        // Make a loop that respecting "server timedate"
         // Like, when this is 08:21 PM and it need to loop at 5 min every time
         // it will start looping on 08:25 without waiting the another thread completely
         // finish.

@@ -8,6 +8,6 @@ public class PostEngine
     public async void Spawn()
     {
         await Task.Delay(5000);
-        Logging.Info("It works!", "POST");
+        Logging.Info("It works! (After 5s)", "POST");
     }
 }
