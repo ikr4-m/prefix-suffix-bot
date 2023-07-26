@@ -1,5 +1,4 @@
 using PrefixSuffixBot.Helper;
-using System.Data.SQLite;
 using System.Text.Json;
 
 namespace PrefixSuffixBot.Migrator;
@@ -36,37 +35,16 @@ public class MigratorEngine
 
     private void GenerateDatabase()
     {
-        // List all SQL file
-        var inDirFiles = Directory.GetFiles(Path.Join(_dir, "./Migrator/SQL"));
-        
-        // Create SQLite database
-        var dbName = Path.Join(_dir, "database.sqlite");
-        var conString = $"Data Source={dbName};Version=3;";
-        if (Directory.GetFiles(_dir).Where(x => x.Contains(dbName)).Count() == 0)
-        {
-            SQLiteConnection.CreateFile(dbName);
-            Console.WriteLine("Creating SQLite.");
-        }
-
-        Logging.Info("Connecting to SQLite.");
-        var con = new SQLiteConnection(conString);
-        con.Open();
-        
-        // Import all SQL Database
-        foreach (var path in inDirFiles)
-        {
-            var text = File.ReadAllText(path);
-            Logging.Info($"Import SQL file from {path}");
-            Console.WriteLine(text);
-            new SQLiteCommand(text, con).ExecuteNonQuery();
-        }
-
-        Logging.Info("Closing SQLite. Process done!");
-        con.Close();
+        var db = new DatabaseContext();
+        if (File.Exists(db.Directory)) File.Delete(db.Directory);
+        db.Database.EnsureCreated();
+        Logging.Info("Generate/regenerate database from model successfully!");
     }
 
     private void ImportLanguage(string lang)
     {
+        var db = new DatabaseContext();
+
         var jsonPath = Path.Join(_dir, $"./Migrator/lang/{lang}.json");
         if (!Path.Exists(jsonPath))
         {
@@ -75,27 +53,15 @@ public class MigratorEngine
         }
         var rawText = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(jsonPath))!;
 
-        // Sending all text to database
-        var dbPath = Path.Join(_dir, "database.sqlite");
-        if (!Path.Exists(dbPath))
-        {
-            Logging.Error(new Exception("Database not found. Please generate first."));
-            Environment.Exit(1);
-        }
+        foreach (var txt in rawText)
+            db.Keywords.Add(new Keyword { KeywordText = txt.Key });
 
-        Logging.Info("Connecting to SQLite.");
-        var conString = $"Data Source={dbPath};Version=3;";
-        var con = new SQLiteConnection(conString);
-        con.Open();
+        
+        Logging.Info($"Importing text file....");
+        db.SaveChanges();
+        Logging.Info($"Successfully import {rawText.Count} keyword");
 
-        foreach (var txt in rawText!)
-        {
-            Logging.Info($"Insert {txt.Key} to database.");
-            var query = $"INSERT INTO keyword (keyword) VALUES (\"{txt.Key}\")";
-            new SQLiteCommand(query, con).ExecuteNonQuery();
-        }
-
-        Logging.Info("Closing SQLite. Process done!");
-        con.Close();
+        var count = db.Keywords.Count();
+        Logging.Info($"Total keyword: {count}");
     }
 }
