@@ -12,4 +12,13 @@
     <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Migrator\**\*.sql">
+      <CopyToOutputDirectory>always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Migrator\lang\**\*.*">
+      <CopyToOutputDirectory>always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

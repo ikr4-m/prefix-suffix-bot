@@ -1,10 +1,12 @@
-using PrefixSuffixBot.Migrator.Language;
+using PrefixSuffixBot.Helper;
 using System.Data.SQLite;
+using System.Text.Json;
 
 namespace PrefixSuffixBot.Migrator;
 public class MigratorEngine
 {
     private string[] _args;
+    private string _dir = AppDomain.CurrentDomain.BaseDirectory;
 
     public MigratorEngine(string[] args)
     {
@@ -35,18 +37,18 @@ public class MigratorEngine
     private void GenerateDatabase()
     {
         // List all SQL file
-        var inDirFiles = Directory.GetFiles("./Migrator/SQL");
+        var inDirFiles = Directory.GetFiles(Path.Join(_dir, "./Migrator/SQL"));
         
         // Create SQLite database
-        var dbName = "database.sqlite";
+        var dbName = Path.Join(_dir, "database.sqlite");
         var conString = $"Data Source={dbName};Version=3;";
-        if (Directory.GetFiles("./").Where(x => x.Contains(dbName)).Count() == 0)
+        if (Directory.GetFiles(_dir).Where(x => x.Contains(dbName)).Count() == 0)
         {
             SQLiteConnection.CreateFile(dbName);
             Console.WriteLine("Creating SQLite.");
         }
 
-        Console.WriteLine("Connecting to SQLite.");
+        Logging.Info("Connecting to SQLite.");
         var con = new SQLiteConnection(conString);
         con.Open();
         
@@ -54,23 +56,46 @@ public class MigratorEngine
         foreach (var path in inDirFiles)
         {
             var text = File.ReadAllText(path);
-            Console.WriteLine($"Import SQL file from {path}");
+            Logging.Info($"Import SQL file from {path}");
             Console.WriteLine(text);
             new SQLiteCommand(text, con).ExecuteNonQuery();
         }
 
-        Console.WriteLine("Closing SQLite. Process done!");
+        Logging.Info("Closing SQLite. Process done!");
         con.Close();
     }
 
     private void ImportLanguage(string lang)
     {
-        switch (lang)
+        var jsonPath = Path.Join(_dir, $"./Migrator/lang/{lang}.json");
+        if (!Path.Exists(jsonPath))
         {
-            case "id": new Indonesia(); break;
-            default:
-                Console.WriteLine("No language supported!");
-                break;
+            Logging.Error(new Exception("Language not supported."));
+            Environment.Exit(1);
         }
+        var rawText = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(jsonPath))!;
+
+        // Sending all text to database
+        var dbPath = Path.Join(_dir, "database.sqlite");
+        if (!Path.Exists(dbPath))
+        {
+            Logging.Error(new Exception("Database not found. Please generate first."));
+            Environment.Exit(1);
+        }
+
+        Logging.Info("Connecting to SQLite.");
+        var conString = $"Data Source={dbPath};Version=3;";
+        var con = new SQLiteConnection(conString);
+        con.Open();
+
+        foreach (var txt in rawText!)
+        {
+            Logging.Info($"Insert {txt.Key} to database.");
+            var query = $"INSERT INTO keyword (keyword) VALUES (\"{txt.Key}\")";
+            new SQLiteCommand(query, con).ExecuteNonQuery();
+        }
+
+        Logging.Info("Closing SQLite. Process done!");
+        con.Close();
     }
 }
