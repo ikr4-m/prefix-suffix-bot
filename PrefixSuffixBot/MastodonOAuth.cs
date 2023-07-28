@@ -2,16 +2,21 @@ using PrefixSuffixBot.Helper;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Net;
+using System.Text;
 
 namespace PrefixSuffixBot;
 public class MastodonOAuth
 {
-    private int _localPort = 45932;
+    private string _localServerPath = $"http://localhost:45932/";
+    private string _callbackPath = "";
 
     private DatabaseContext _db;
     private MastodonToken _token;
     private HttpClient _http;
 
+    private string GenerateAuthorizeURI()
+        => $"{_http.BaseAddress!.ToString()}oauth/authorize?response_type=code&client_id={_token.ClientID}&redirect_uri={_localServerPath}&scope=read write";
 
     public MastodonOAuth(string uri, DatabaseContext db)
     {
@@ -27,14 +32,67 @@ public class MastodonOAuth
         _token.ClientName = "PrefixSuffixBot";
     }
 
+    public bool IsTokenAvailable() => _token.Token != "";
+
     public async Task GenerateToken()
+    {
+        Logging.Info("Make server for retrieve code", "OAUTH");
+        var runServer = true;
+        var listener = new HttpListener();
+        listener.Prefixes.Add(_localServerPath);
+        listener.Start();
+
+        Logging.Info(
+            $"Access OAuth from this url (this must be doing manually)\n\n{GenerateAuthorizeURI()}",
+            "OAUTH");
+
+        while (runServer)
+        {
+            var ctx = await listener.GetContextAsync();
+            var req = ctx.Request;
+            var res = ctx.Response;
+            
+            var uriString = req.Url!.ToString();
+            if (uriString.Contains("?code="))
+            {
+                _callbackPath = uriString;
+                runServer = false;
+            }
+            
+            var data = Encoding.UTF8.GetBytes("You can back to the app.");
+            res.ContentType = "text/html";
+            res.ContentEncoding = Encoding.UTF8;
+            res.ContentLength64 = data.LongLength;
+            await res.OutputStream.WriteAsync(data, 0, data.Length);
+
+            res.Close();
+        }
+
+        var propString = _callbackPath.Split('?')[1].Split('=')[1];
+        _token.Token = propString;
+
+        Logging.Info("Updating token to database", "OAUTH");
+        var dbData = await _db.MastodonOAuth.Where(x => x.ClientID == _token.ClientID).FirstOrDefaultAsync();
+        if (dbData == null)
+        {
+            Logging.Error(new Exception("ClientID not found!"));
+            Environment.Exit(1);
+        }
+
+        dbData.Token = _token.Token;
+        _db.MastodonOAuth.Update(dbData);
+        await _db.SaveChangesAsync();
+        Logging.Info("Updating token to database done!", "OAUTH");
+    }
+
+    public async Task GenerateClientData()
     {
         // Get client id and secret
         Logging.Info("Start requesting client secret to server.", "OAUTH");
         var res = await _http.PostAsJsonAsync("api/v1/apps", new
         {
             client_name =  _token.ClientName,
-            redirect_uris = $"http://localhost:{_localPort}/",
+            redirect_uris = _localServerPath,
             scope = "read write"
         });
         var resContent = await res.Content.ReadAsStringAsync();
@@ -66,7 +124,7 @@ public class MastodonOAuth
         Logging.Info("Importing to database done!", "OAUTH");
     }
 
-    public async Task InitializeToken()
+    public async Task InitializeClientInfo()
     {
         var data = await _db.MastodonOAuth.FirstOrDefaultAsync();
         if (data == null)

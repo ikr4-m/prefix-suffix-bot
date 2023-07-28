@@ -26,9 +26,13 @@ public class Program
 
         // Check the secret is available in database or not
         if (db.MastodonOAuth.FirstOrDefault() == null)
-            Task.Run(async () => await mastodon.GenerateToken()).Wait();
+            Task.Run(async () => await mastodon.GenerateClientData()).Wait();
         
-        Task.Run(async () => await mastodon.InitializeToken()).Wait();
+        Task.Run(async () => await mastodon.InitializeClientInfo()).Wait();
+
+        // Check if token is available
+        if (!mastodon.IsTokenAvailable())
+            mastodon.GenerateToken().GetAwaiter().GetResult();
         Logging.Info("OAuth ready!", "POOL");
 
         // Make a loop that respecting "server timedate"
