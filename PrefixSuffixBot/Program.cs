@@ -20,8 +20,16 @@ public class Program
 
         // Check database connection
         var db = new DatabaseContext();
-        var engine = new PostEngine(db);
+        var mastodon = new MastodonOAuth(Environment.GetEnvironmentVariable("MASTODON_URI") ?? "", db);
+        var engine = new PostEngine(db, mastodon);
         engine.CheckConnection();
+
+        // Check the secret is available in database or not
+        if (db.MastodonOAuth.FirstOrDefault() == null)
+            Task.Run(async () => await mastodon.GenerateToken()).Wait();
+        
+        Task.Run(async () => await mastodon.InitializeToken()).Wait();
+        Logging.Info("OAuth ready!", "POOL");
 
         // Make a loop that respecting "server timedate"
         // Like, when this is 08:21 PM and it need to loop at 5 min every time
