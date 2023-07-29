@@ -35,6 +35,9 @@ public class Program
             mastodon.GenerateToken().GetAwaiter().GetResult();
         Logging.Info("OAuth ready!", "POOL");
 
+        // Make kickstarter
+        var kickstart = false;
+
         // Make a loop that respecting "server timedate"
         // Like, when this is 08:21 PM and it need to loop at 5 min every time
         // it will start looping on 08:25 without waiting the another thread completely
@@ -42,14 +45,18 @@ public class Program
         while (true)
         {
             // Spawning shadow Task Thread
-            Logging.Info("Spawning post task.", "POOL");
-            _ = Task.Run(engine.Spawn);
+            if (kickstart)
+            {
+                Logging.Info("Spawning post task.", "POOL");
+                _ = Task.Run(engine.Spawn);
+            }
 
             // Calculate next turn
             var dateNow = DateTime.Now;
             var diffMin = _loopInMinute - (dateNow.Minute % _loopInMinute);
             var nextTurnDT = dateNow.AddMinutes(diffMin);
             var nextTurn = (int) double.Floor(nextTurnDT.Subtract(dateNow).TotalMilliseconds);
+            kickstart = true;
 
             Logging.Info(
                 $"Diff min is {diffMin} from local server. Your next turn is on {nextTurnDT}. [{nextTurn} ms]",

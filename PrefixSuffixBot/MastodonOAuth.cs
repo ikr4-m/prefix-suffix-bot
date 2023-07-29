@@ -1,9 +1,10 @@
 using PrefixSuffixBot.Helper;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System.Net;
-using System.Text;
 
 namespace PrefixSuffixBot;
 public class MastodonOAuth
@@ -162,6 +163,23 @@ public class MastodonOAuth
         }
 
         _token = data;
+    }
+
+    public async Task PostToMastodon(string text)
+    {
+        Logging.Info("Start handshaking to instance.", "OAUTH");
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_token.TokenType, _token.Token);
+        var res = await _http.PostAsJsonAsync("api/v1/statuses", new
+        {
+            status = text
+        });
+
+        if (!res.IsSuccessStatusCode)
+        {
+            Logging.Error(new Exception($"Server giving {res.StatusCode} with output. Ignoring."));
+            return;
+        }
+        Logging.Info("Success posting to instance!", "OAUTH");
     }
 }
 
