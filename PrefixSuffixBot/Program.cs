@@ -17,6 +17,11 @@ public class Program
             Environment.Exit(1);
         }
         _loopInMinute = int.Parse(loopEnv);
+        if (_loopInMinute > 60)
+        {
+            Logging.Error(new InvalidEnvironmentValueException("LOOP_LENGTH"));
+            Environment.Exit(1);
+        }
 
         // Check database connection
         var db = new DatabaseContext();
