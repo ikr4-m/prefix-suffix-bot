@@ -165,7 +165,7 @@ public class MastodonOAuth
         _token = data;
     }
 
-    public async Task PostToMastodon(string text)
+    public async Task PostToMastodon(string text, Keyword keyword)
     {
         Logging.Info("Start handshaking to instance.", "OAUTH");
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_token.TokenType, _token.Token);
@@ -179,6 +179,12 @@ public class MastodonOAuth
             Logging.Error(new Exception($"Server giving {res.StatusCode} with output. Ignoring."));
             return;
         }
+
+        Logging.Info("Rewrite the keyword to database", "OAUTH");
+        keyword.DateUsed = DateTime.Now;
+        keyword.IsUsed = true;
+        _db.Keywords.Update(keyword);
+        await _db.SaveChangesAsync();
         Logging.Info("Success posting to instance!", "OAUTH");
     }
 }

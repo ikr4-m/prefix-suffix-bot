@@ -53,6 +53,6 @@ public class PostEngine
         var pickedKeyword = data[randNumber];
         var strKeyword = prefix + pickedKeyword.KeywordText + suffix;
         Logging.Info($"Picking new word, {pickedKeyword.KeywordText}. Publishing to instance.", "POST");
-        await _mastodon.PostToMastodon(strKeyword);
+        await _mastodon.PostToMastodon(strKeyword, pickedKeyword);
     }
 }
