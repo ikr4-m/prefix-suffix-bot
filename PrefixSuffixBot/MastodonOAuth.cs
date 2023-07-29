@@ -68,8 +68,35 @@ public class MastodonOAuth
             res.Close();
         }
 
-        var propString = _callbackPath.Split('?')[1].Split('=')[1];
-        _token.Token = propString;
+        Logging.Info("Retrieving the real token.", "OAUTH");
+        var privCode = _callbackPath.Split('?')[1].Split('=')[1];
+        var resToken = await _http.PostAsJsonAsync("oauth/token", new
+        {
+            grant_type = "authorization_code",
+            code = privCode,
+            client_id = _token.ClientID,
+            client_secret = _token.ClientSecret,
+            redirect_uri = _localServerPath,
+            scope = "read write"
+        });
+        var resContent = await resToken.Content.ReadAsStringAsync();
+        var tempContent = JsonConvert.DeserializeObject<object>(resContent);
+        var printContent = JsonConvert.SerializeObject(tempContent, Formatting.Indented);
+
+        if (!resToken.IsSuccessStatusCode)
+        {
+            Logging.Error(new Exception($"Server giving {resToken.StatusCode} with output:\n{printContent}"));
+            Environment.Exit(1);
+        }
+        var content = JsonConvert.DeserializeObject<MastodonTokenResponse>(resContent);
+        if (content == null)
+        {
+            Logging.Error(new Exception($"Content not successfully deserialzed."));
+            Environment.Exit(1);
+        }
+
+        _token.Token = content.AccessToken;
+        _token.TokenType = content.TokenType;
 
         Logging.Info("Updating token to database", "OAUTH");
         var dbData = await _db.MastodonOAuth.Where(x => x.ClientID == _token.ClientID).FirstOrDefaultAsync();
@@ -80,6 +107,7 @@ public class MastodonOAuth
         }
 
         dbData.Token = _token.Token;
+        dbData.TokenType = _token.TokenType;
         _db.MastodonOAuth.Update(dbData);
         await _db.SaveChangesAsync();
         Logging.Info("Updating token to database done!", "OAUTH");
@@ -140,6 +168,7 @@ public class MastodonOAuth
 public class MastodonToken
 {
     public string Token { get; set; } = string.Empty;
+    public string TokenType { get; set; } = string.Empty;
     public string ClientID { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public string ClientName { get; set; } = string.Empty;
@@ -152,4 +181,12 @@ public class MastodonAppsResponse
     [JsonProperty("redirect_uri")] public string RedirectURI { get; set; } = string.Empty;
     [JsonProperty("client_id")] public string ClientID { get; set; } = string.Empty;
     [JsonProperty("client_secret")] public string ClientSecret { get; set; } = string.Empty;
+}
+
+public class MastodonTokenResponse
+{
+    [JsonProperty("access_token")] public string AccessToken { get; set; } = string.Empty;
+    [JsonProperty("created_at")] public long CreatedAt { get; set; }
+    [JsonProperty("scope")] public string ScopeRaw { get; set; } = string.Empty;
+    [JsonProperty("token_type")] public string TokenType { get; set; } = string.Empty;
 }
