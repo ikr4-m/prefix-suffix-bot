@@ -26,9 +26,9 @@ public class Program
 
         // Check the secret is available in database or not
         if (db.MastodonOAuth.FirstOrDefault() == null)
-            Task.Run(async () => await mastodon.GenerateClientData()).Wait();
+            mastodon.GenerateClientData().GetAwaiter().GetResult();
         
-        Task.Run(async () => await mastodon.InitializeClientInfo()).Wait();
+        mastodon.InitializeClientInfo().GetAwaiter().GetResult();
 
         // Check if token is available
         if (!mastodon.IsTokenAvailable())
